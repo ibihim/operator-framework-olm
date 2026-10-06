@@ -4,11 +4,19 @@ namespace: openshift-operator-lifecycle-manager
 namespace_psa: 
   enforceLevel: restricted
   enforceVersion: latest
+  auditLevel: restricted
+  auditVersion: latest
+  warnLevel: restricted
+  warnVersion: latest
 catalog_namespace: openshift-marketplace
 operator_namespace: openshift-operators
 operator_namespace_psa: 
   enforceLevel: privileged
   enforceVersion: latest
+  auditLevel: privileged
+  auditVersion: latest
+  warnLevel: privileged
+  warnVersion: latest
 imagestream: true
 writeStatusName: operator-lifecycle-manager
 writeStatusNameCatalog: operator-lifecycle-manager-catalog

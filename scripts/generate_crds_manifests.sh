@@ -567,13 +567,19 @@ ${YQ} d -d'*' --inplace manifests/0000_50_olm_00-packageserver.pdb.yaml 'metadat
 find "${ROOT_DIR}/manifests" -type f -exec $SED -i "/^#/d" {} \;
 find "${ROOT_DIR}/manifests" -type f -exec $SED -i "1{/---/d}" {} \;
 
-# (anik120): uncomment this once https://issues.redhat.com/browse/OLM-2695 is Done.
-#${YQ} delete --inplace -d'1' manifests/0000_50_olm_00-namespace.yaml 'metadata.labels."pod-security.kubernetes.io/enforce*"'
-
-# Unlike the namespaces shipped in the upstream version, the openshift-operator-lifecycle-manager and openshift-operator
-# namespaces enforce restricted PSA policies, so warnings and audits labels are not neccessary.
-${YQ} delete --inplace -d'*' manifests/0000_50_olm_00-namespace.yaml 'metadata.labels."pod-security.kubernetes.io/warn*"'
-${YQ} delete --inplace -d'*' manifests/0000_50_olm_00-namespace.yaml 'metadata.labels."pod-security.kubernetes.io/audit*"'
+# The chart renders the audit and warn labels of the operator namespace (document 1) from namespace_psa,
+# so overwrite them with the levels from operator_namespace_psa.
+operator_namespace=$(${YQ} read --exitStatus values.yaml operator_namespace)
+if [[ "$(${YQ} read -d'1' manifests/0000_50_olm_00-namespace.yaml metadata.name)" != "${operator_namespace}" ]]; then
+  echo "expected ${operator_namespace} as document 1 of manifests/0000_50_olm_00-namespace.yaml" >&2
+  exit 1
+fi
+for mode in audit warn; do
+  level=$(${YQ} read --exitStatus values.yaml "operator_namespace_psa.${mode}Level")
+  version=$(${YQ} read --exitStatus values.yaml "operator_namespace_psa.${mode}Version")
+  ${YQ} write --inplace -d'1' manifests/0000_50_olm_00-namespace.yaml "metadata.labels.\"pod-security.kubernetes.io/${mode}\"" "${level}"
+  ${YQ} write --inplace -d'1' manifests/0000_50_olm_00-namespace.yaml "metadata.labels.\"pod-security.kubernetes.io/${mode}-version\"" "${version}"
+done
 
 # Let's copy all the manifests to a separate directory for microshift
 mkdir -p "${ROOT_DIR}/microshift-manifests/"
